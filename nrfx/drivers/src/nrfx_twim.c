@@ -383,7 +383,7 @@ static nrfx_err_t twim_xfer(twim_control_block_t        * p_cb,
     nrf_twim_task_t  start_task = NRF_TWIM_TASK_STARTTX;
     p_cb->error = false;
 
-    if (!nrfx_is_in_ram(p_xfer_desc->p_primary_buf))
+    if (p_xfer_desc->primary_length != 0 && !nrfx_is_in_ram(p_xfer_desc->p_primary_buf))
     {
         err_code = NRFX_ERROR_INVALID_ADDR;
         NRFX_LOG_WARNING("Function: %s, error code: %s.",
@@ -490,6 +490,10 @@ static nrfx_err_t twim_xfer(twim_control_block_t        * p_cb,
     if (!(flags & NRFX_TWIM_FLAG_HOLD_XFER) && (p_xfer_desc->type != NRFX_TWIM_XFER_TXTX))
     {
         nrf_twim_task_trigger(p_twim, start_task);
+        if (p_xfer_desc->primary_length == 0)
+        {
+            nrf_twim_task_trigger(p_twim, NRF_TWIM_TASK_STOP);
+        }
     }
 
     if (p_cb->handler)
@@ -515,7 +519,7 @@ static nrfx_err_t twim_xfer(twim_control_block_t        * p_cb,
             p_twim->FREQUENCY = 0;
             nrf_twim_event_clear(p_twim, NRF_TWIM_EVENT_TXSTARTED);
             nrf_twim_int_enable(p_twim, NRF_TWIM_INT_TXSTARTED_MASK);
-        } 
+        }
         else
         {
             nrf_twim_frequency_set(p_twim, p_cb->bus_frequency);
